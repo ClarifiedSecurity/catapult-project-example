@@ -1,3 +1,0 @@
----
-dependencies:
-  - role: roles/hello # Including hello role from roles directory

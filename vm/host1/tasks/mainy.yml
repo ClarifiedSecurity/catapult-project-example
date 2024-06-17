@@ -1,4 +1,0 @@
----
-- name: Getting variables for the host...
-  ansible.builtin.debug:
-    msg: "{{ ansible_facts }}"

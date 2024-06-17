@@ -1,3 +1,9 @@
 core.*
+*.swp
+*.retry
+.ansible
+ansible
+**/__pycache__/
+*.log
 .vscode
 .githooks

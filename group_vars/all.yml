@@ -15,3 +15,9 @@ datastore: DS01
 resource_pool: Project Everything
 infra_env: vsphere
 linked_clone_status: true
+
+########
+# MISC #
+########
+
+save_secrets_to_vault: false # Set to true to save secrets to HashiCorp Vault if you have it configured
