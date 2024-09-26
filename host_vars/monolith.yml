@@ -38,7 +38,7 @@ keycloak_realms:
   - realm_name: Apps
     sso_session_idle_timeout: 172800 ## 2 days
     sso_session_max_lifespan: 604800 ## 7 days
-    configure_ldap: yes
+    configure_ldap: true
     ldap_server: ldaps://dc1.example.com
     users_search_dn: DC=example,DC=com
     bind_user_dn: CN=svc_keycloak,OU=Service Accounts,DC=example,DC=com
@@ -59,7 +59,7 @@ keycloak_realms:
         root_uri: https://{{ monolith_providentia_fqdn }}
         weborigin_uris:
           - https://{{ monolith_providentia_fqdn }}/*
-        create_client_scope: yes
+        create_client_scope: true
 
 # ###############
 # # Providentia #
