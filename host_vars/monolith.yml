@@ -97,7 +97,6 @@ keycloak_realms:
 # ###############
 
 providentia_app_fqdn: "{{ monolith_providentia_fqdn }}"
-providentia_deploy_branch: v24.3.3 # Update as needed
 
 #########
 # Nexus #
