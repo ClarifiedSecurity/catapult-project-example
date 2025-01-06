@@ -12,4 +12,4 @@
 
 # # The Oauth2 provider URL where to request the token to access Providentia
 # # The example below is for Keycloak with a realm named SSO
-# sso_token_url: https://kc.example.com/auth/realms/SSO/protocol/openid-connect/token
+# sso_token_url: https://kc.example.com/realms/Apps/protocol/openid-connect/token
