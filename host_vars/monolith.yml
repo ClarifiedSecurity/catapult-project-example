@@ -64,11 +64,16 @@ keycloak_realms:
           - https://{{ monolith_providentia_fqdn }}/*
         create_client_scope: true
 
-# ###############
-# # Providentia #
-# ###############
+###############
+# Providentia #
+###############
 
 providentia_app_fqdn: "{{ monolith_providentia_fqdn }}"
+
+# Providentia permissions groups (Usually AD groups when Keycloak is integrated with LDAP)
+providentia_administrators_group: Providentia-Administrators
+providentia_environment_creator_group: Providentia-Environment-Creators
+providentia_login_group: Providentia-Users
 
 #########
 # Nexus #
