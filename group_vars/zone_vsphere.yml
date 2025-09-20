@@ -1,0 +1,16 @@
+---
+infra_env: vsphere # This variable is used to determine which hypervisor roles and tasks to use.
+
+##########
+# VMware #
+##########
+
+# Fill out these with your own vSphere details.
+vcenter_hostname: # vsphere.example.com
+datacenter: # My Datacenter
+projects_parent_folder: # Project Everything
+cluster: # My Cluster
+folder: # "{{ projects_parent_folder }}/Project Everything"
+datastore: # DS01
+resource_pool: # Project Everything
+linked_clone_status: false # Set to true to use linked clones instead of full clones. Requires a template with a snapshot.

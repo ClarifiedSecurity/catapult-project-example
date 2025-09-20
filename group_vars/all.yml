@@ -1,23 +1,10 @@
 ---
-# This file contains example default variables required for this project.
-# Everything added here can be overridden in the respective group_vars/host_vars files or role defaults.
+# A list of administrative accounts to be created on all machines
+admin_accounts:
+  - name: "{{ admin_account }}" # OS specific username that comes from OS inventory group vars
+    password: Pa$$word # Preferably use a variable defined in Ansible Vault or lookup from an external secrets manager like HashiCorp Vault
 
-##########
-# VMware #
-##########
-
-vcenter_hostname: vsphere.example.com
-datacenter: My Datacenter
-projects_parent_folder: Project Everything
-cluster: My Cluster
-folder: "{{ projects_parent_folder }}/Project Everything"
-datastore: DS01
-resource_pool: Project Everything
-infra_env: vsphere
-linked_clone_status: true
-
-########
-# MISC #
-########
+  - name: admin2
+    password: Pa$$word2 # Preferably use a variable defined in Ansible Vault or lookup from an external secrets manager like HashiCorp Vault
 
 save_secrets_to_vault: false # Set to true to save secrets to HashiCorp Vault if you have it configured
