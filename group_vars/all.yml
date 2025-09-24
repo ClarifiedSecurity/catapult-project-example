@@ -1,10 +1,10 @@
 ---
 # A list of administrative accounts to be created on all machines
 admin_accounts:
-  - name: "{{ admin_account }}" # OS specific username that comes from OS inventory group vars
+  - username: "{{ admin_account }}" # OS specific username that comes from OS inventory group vars
     password: Pa$$word # Preferably use a variable defined in Ansible Vault or lookup from an external secrets manager like HashiCorp Vault
 
-  - name: admin2
+  - username: admin2
     password: Pa$$word2 # Preferably use a variable defined in Ansible Vault or lookup from an external secrets manager like HashiCorp Vault
 
 save_secrets_to_vault: false # Set to true to save secrets to HashiCorp Vault if you have it configured
