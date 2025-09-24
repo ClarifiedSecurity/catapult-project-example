@@ -10,6 +10,7 @@ monolith_keycloak_fqdn: login.{{ domain }}
 monolith_vault_fqdn: secrets.{{ domain }}
 
 sudo_requires_password: false
+admin_accounts: [] # No additional admin accounts on monolith by default
 connection_address: 10.10.10.10
 ansible_deployer_username: root
 ansible_deployer_password: Password.123
@@ -32,6 +33,9 @@ vault_ldap_admin_group_name: vault-admins
 
 vault_create_root_ca: true # Create a self-signed root CA
 vault_create_intermediate_ca: true # Create an intermediate CA (signed by the root CA)
+
+vault_crl_fqdn: "{{ monolith_vault_fqdn }}"
+vault_aia_fqdn: "{{ monolith_vault_fqdn }}"
 
 ############
 # Keycloak #

@@ -8,3 +8,5 @@ admin_accounts:
     password: Pa$$word2 # Preferably use a variable defined in Ansible Vault or lookup from an external secrets manager like HashiCorp Vault
 
 save_secrets_to_vault: false # Set to true to save secrets to HashiCorp Vault if you have it configured
+
+project_fullname: CatapultProjectExample
