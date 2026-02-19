@@ -3,34 +3,51 @@
 # Connection #
 ##############
 
+ansible_deployer_username: # REQUIRED - Username of the account that Ansible will use to connect to the monolith server
+ansible_deployer_password: # REQUIRED - Password of the account that Ansible will use to connect to the monolith server
+connection_address: # REQUIRED - The IP address or hostname that Ansible will use to connect to the monolith server.
+domain_admin_username: Administrator
+domain_admin_password: # REQUIRED - Password that will be set for the built-in Administrator account in the Samba AD DC.
+domain: # REQUIRED - The domain name for the Active Directory domain (e.g., example.com).
+
 # Default addresses for monolith applications
 monolith_providentia_fqdn: providentia.{{ domain }}
 monolith_nexus_fqdn: repo.{{ domain }}
 monolith_keycloak_fqdn: login.{{ domain }}
 monolith_vault_fqdn: secrets.{{ domain }}
 
-sudo_requires_password: false
-admin_accounts: [] # No additional admin accounts on monolith by default
-connection_address: 10.10.10.10
-ansible_deployer_username: root
-ansible_deployer_password: Password.123
-hostname: monolith
-domain: example.com
-ad_domain_name: example.com
+dns_servers:
+  - "{{ connection_address }}"
+ad_domain_name: "{{ domain }}"
+admin_accounts: [] # No additional admin accounts on monolith by default, may need to me removed once Monolith is up and running
+domain_dn: DC={{ ad_domain_name.split('.') | join(',DC=') | trim }}
+domain_netbios: "{{ ad_domain_name.split('.')[0] | lower }}"
 fqdn: "{{ hostname }}.{{ domain }}"
+hostname: monolith
+monolith_install_samba: true
+sudo_requires_password: false
 
 #########
 # Vault #
 #########
 
-vault_binddn: CN=svc_vault,OU=Service Accounts,DC=example,DC=com
-vault_bindpass: vault_Password.123
-vault_groupdn: OU=Vault,DC=example,DC=com
-vault_upndomain: "{{ domain }}"
-vault_ldaps_url: ldaps://dc1.example.com
-vault_userdn: DC=example,DC=com
-vault_ldap_admin_group_name: vault-admins
+secrets_vault_engine_path: "{{ inventory_hostname }}"
+secrets_vault_secrets_path: "{{ inventory_hostname }}"
 
+deploy_vars_get_vault_token: false
+vault_address: https://{{ monolith_vault_fqdn }}
+accounts_pre_roles:
+  - nova.core.monolith_get_token
+
+vault_binddn: CN=svc_vault,OU=Service Accounts,OU={{ domain_netbios | upper }},{{ domain_dn }}
+vault_bindpass: "{{ lookup('community.hashi_vault.hashi_vault', vault_lookup_fragment + 'secret=monolith/data/ad:' + inventory_hostname + '_svc_vault') }}"
+vault_groupdn: OU=Vault,OU=Resources,{{ domain_dn }}
+vault_upndomain: "{{ domain }}"
+vault_ldaps_url: ldaps://{{ fqdn }}
+vault_userdn: "{{ domain_dn }}"
+vault_ldap_admin_group_name: RE_Vault_Administrators
+
+vault_ca_country: EE
 vault_create_root_ca: true # Create a self-signed root CA
 vault_create_intermediate_ca: true # Create an intermediate CA (signed by the root CA)
 
@@ -46,16 +63,18 @@ keycloak_realms:
     sso_session_idle_timeout: 172800 ## 2 days
     sso_session_max_lifespan: 604800 ## 7 days
     configure_ldap: true
-    ldap_server: ldaps://dc1.example.com
-    users_search_dn: DC=example,DC=com
-    bind_user_dn: CN=svc_keycloak,OU=Service Accounts,DC=example,DC=com
-    bind_user_password: keycloak_Password.123
+    ldap_server: ldaps://{{ fqdn }}
+    users_search_dn: "OU=Users,OU={{ domain_netbios | upper }},{{ domain_dn }}"
+    bind_user_dn: CN=svc_keycloak,OU=Service Accounts,OU={{ domain_netbios | upper }},{{ domain_dn }}
+    bind_user_password:
+      "{{ lookup('community.hashi_vault.hashi_vault', vault_lookup_fragment
+      + 'secret=monolith/data/ad:' + inventory_hostname + '_svc_keycloak') }}"
     custom_user_search_filter:
       - "(&(objectClass=person)(mail=*))"
 
     ldap_role_mappers:
       - client_name: Providentia
-        ldap_groups_dn: OU=Providentia,DC=example,DC=com
+        ldap_groups_dn: OU=Providentia,OU=Resources,OU={{ domain_netbios | upper }},{{ domain_dn }}
 
     clients:
       - client_name: Providentia
@@ -75,18 +94,121 @@ keycloak_realms:
 providentia_app_fqdn: "{{ monolith_providentia_fqdn }}"
 
 # Providentia permissions groups (Usually AD groups when Keycloak is integrated with LDAP)
-providentia_administrators_group: Providentia-Administrators
-providentia_environment_creator_group: Providentia-Environment-Creators
-providentia_login_group: Providentia-Users
+providentia_administrators_group: RE_Providentia_Admins
+providentia_environment_creator_group: RE_Providentia_Environment_Creators
+providentia_login_group: RE_Providentia_Users
 
 #########
 # Nexus #
 #########
 
 nexus_ldap_name: "{{ domain }}"
-nexus_ldap_host: dc1.example.com
-nexus_ldap_search_base: DC=example,DC=com
-nexus_bind_user_dn: CN=svc_nexus,OU=Service Accounts,DC=example,DC=com
-nexus_groups_dn_under_searchbase: OU=Nexus
-nexus_bind_dn_password: nexus_Password.123
-nexus_ldap_administrators_group: nexus-admins
+nexus_ldap_host: "{{ fqdn }}"
+nexus_ldap_search_base: "OU={{ domain_netbios | upper }},{{ domain_dn }}"
+nexus_bind_user_dn: CN=svc_nexus,OU=Service Accounts,OU={{ domain_netbios | upper }},{{ domain_dn }}
+nexus_groups_dn_under_searchbase: OU=Nexus,OU=Resources
+nexus_bind_dn_password:
+  "{{ lookup('community.hashi_vault.hashi_vault', vault_lookup_fragment
+  + 'secret=monolith/data/ad:' + inventory_hostname + '_svc_nexus') }}"
+nexus_ldap_administrators_group: Re_Nexus_Admins
+
+domain_user_accounts:
+  # Service accounts
+  - username: svc_keycloak
+    password:
+      "{{ lookup('community.hashi_vault.hashi_vault', vault_lookup_fragment
+      + 'secret=monolith/data/ad:' + inventory_hostname + '_svc_keycloak') }}"
+    description: Keycloak LDAP bind account
+    ou: OU=Service Accounts,OU={{ domain_netbios | upper }},{{ domain_dn }}
+    secrets_vault_secrets_path: ad
+
+  - username: svc_vault
+    password:
+      "{{ lookup('community.hashi_vault.hashi_vault', vault_lookup_fragment
+      + 'secret=monolith/data/ad:' + inventory_hostname + '_svc_vault') }}"
+    description: Vault LDAP bind account
+    ou: OU=Service Accounts,OU={{ domain_netbios | upper }},{{ domain_dn }}
+    secrets_vault_secrets_path: ad
+
+  - username: svc_nexus
+    password:
+      "{{ lookup('community.hashi_vault.hashi_vault', vault_lookup_fragment
+      + 'secret=monolith/data/ad:' + inventory_hostname + '_svc_nexus') }}"
+    description: Nexus LDAP bind account
+    ou: OU=Service Accounts,OU={{ domain_netbios | upper }},{{ domain_dn }}
+    secrets_vault_secrets_path: ad
+
+  - username: svc_gitlab
+    password:
+      "{{ lookup('community.hashi_vault.hashi_vault', vault_lookup_fragment
+      + 'secret=monolith/data/ad:' + inventory_hostname + '_svc_gitlab') }}"
+    description: Gitlab service LDAP bind
+    ou: OU=Service Accounts,OU={{ domain_netbios | upper }},{{ domain_dn }}
+    secrets_vault_secrets_path: ad
+
+  - username: svc_outline
+    password:
+      "{{ lookup('community.hashi_vault.hashi_vault', vault_lookup_fragment
+      + 'secret=monolith/data/ad:' + inventory_hostname + '_svc_outline') }}"
+    description: Outline service LDAP bind
+    ou: OU=Service Accounts,OU={{ domain_netbios | upper }},{{ domain_dn }}
+    secrets_vault_secrets_path: ad
+
+  # Project administrators
+  # Password will be auto-generated. Use the domain_admin_username and domain_admin_password and samba-tool to change it after the Monolith is up and running
+  - username: admin
+    save_password_to_vault: false
+    update_password: on_create
+    email: admin@{{ domain }}
+    ou: OU=Users,OU={{ domain_netbios | upper }},{{ domain_dn }}
+    groups:
+      - RO_Project_{{ project_fullname }}_Administrators
+
+domain_groups:
+  #########
+  # Roles #
+  #########
+  - name: RO_Project_{{ project_fullname }}_Administrators
+    scope: global
+    ou: OU=Roles,OU={{ domain_netbios | upper }},{{ domain_dn }}
+    description: Users who have full administrative access to all project resources
+
+  #############
+  # Resources #
+  #############
+
+  # Vault
+  - name: RE_Vault_Administrators
+    scope: domainlocal
+    ou: OU=Vault,OU=Resources,OU={{ domain_netbios | upper }},{{ domain_dn }}
+    description: Administrators in https://{{ monolith_vault_fqdn }}
+    members:
+      - RO_Project_{{ project_fullname }}_Administrators
+
+  # Nexus
+  - name: Re_Nexus_Admins
+    scope: domainlocal
+    ou: OU=Nexus,OU=Resources,OU={{ domain_netbios | upper }},{{ domain_dn }}
+    description: Administrators in https://{{ monolith_nexus_fqdn }}
+    members:
+      - RO_Project_{{ project_fullname }}_Administrators
+
+  # Providentia
+  - name: RE_Providentia_Admins
+    scope: domainlocal
+    ou: OU=Providentia,OU=Resources,OU={{ domain_netbios | upper }},{{ domain_dn }}
+    description: Administrators in https://{{ monolith_providentia_fqdn }}
+    members:
+      - RO_Project_{{ project_fullname }}_Administrators
+
+  - name: RE_Providentia_Environment_Creators
+    scope: domainlocal
+    ou: OU=Providentia,OU=Resources,OU={{ domain_netbios | upper }},{{ domain_dn }}
+    description: Environment creators permissions in https://{{ monolith_providentia_fqdn }}
+
+  - name: RE_Providentia_Users
+    scope: domainlocal
+    ou: OU=Providentia,OU=Resources,OU={{ domain_netbios | upper }},{{ domain_dn }}
+    description: Login permissions to https://{{ monolith_providentia_fqdn }}
+    members:
+      - RO_Project_{{ project_fullname }}_Administrators

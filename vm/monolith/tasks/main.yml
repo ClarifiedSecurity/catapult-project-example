@@ -1,1 +1,30 @@
----
+# Making sure that Monolith services are accessible by their FQDNs by adding entries to the hosts file on the Ansible control node
+# Using shell because lineinfile cannot handle the locked /etc/hosts file inside a container
+- name: Updating hosts file with status output...
+  ansible.builtin.shell: |
+    if grep -q "{{ item.fqdn }}" /etc/hosts; then
+      echo "exists"
+    else
+      echo "{{ item.ip }}       {{ item.fqdn }}" >> /etc/hosts
+      echo "added"
+    fi
+  delegate_to: localhost
+  become: true
+  register: hosts_update
+  changed_when: hosts_update.stdout == "added"
+  loop:
+    - ip: "{{ hostvars['monolith'].connection_address }}"
+      fqdn: "{{ monolith_providentia_fqdn }}"
+
+    - ip: "{{ hostvars['monolith'].connection_address }}"
+      fqdn: "{{ monolith_nexus_fqdn }}"
+
+    - ip: "{{ hostvars['monolith'].connection_address }}"
+      fqdn: "{{ monolith_keycloak_fqdn }}"
+
+    - ip: "{{ hostvars['monolith'].connection_address }}"
+      fqdn: "{{ monolith_vault_fqdn }}"
+
+- name: Including nova.core.monolith role
+  ansible.builtin.include_role:
+    name: nova.core.monolith

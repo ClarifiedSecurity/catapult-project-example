@@ -8,3 +8,4 @@ ansible
 .vscode
 .githooks
 /playbook.yml
+/playbook.retry
