@@ -7,6 +7,10 @@
 # # The URL of the Providentia instance you have set up or have access to
 # providentia_host: https://providentia.example.com
 
+# # The environment name where the project is.
+# # This can be used to set environment-specific deployer credentials that work with all projects in that environment.
+# environment: my_env
+
 # # The project Abbreviation defined in Providentia
 # project: my_project
 
